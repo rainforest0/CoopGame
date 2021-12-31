@@ -4,6 +4,7 @@
 #include "SCharacter.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "GameFramework/PawnMovementComponent.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -12,11 +13,13 @@ ASCharacter::ASCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArmComp"));
-	SpringArmComp->bUsePawnControlRotation = true;
+	SpringArmComp->bUsePawnControlRotation = true;//使用Pawn的旋转控制相机的移动
 	SpringArmComp->SetupAttachment(RootComponent);
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
+
+	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	
 }
 
@@ -42,7 +45,7 @@ void ASCharacter::MoveForward(float Value)
 		return GetComponentTransform().GetUnitAxis(EAxis::X);
 	}
 	*/
-	AddMovementInput(GetActorForwardVector(), Value);
+	AddMovementInput(GetActorForwardVector() * Value);
 }
 
 void ASCharacter::MoveRight(float Value)
@@ -53,8 +56,20 @@ void ASCharacter::MoveRight(float Value)
 	    return GetComponentTransform().GetUnitAxis( EAxis::Y );
      }
 	*/
-	AddMovementInput(GetActorRightVector(), Value);
+	AddMovementInput(GetActorRightVector() * Value);
 }
+
+void  ASCharacter::BeginCrouch()
+{
+	//调用Character中提供的Crouch方法，需要在Character中启用Crouch 
+	Crouch();
+}
+
+void  ASCharacter::EndCrouch()
+{
+	UnCrouch();
+}
+
 
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
@@ -67,6 +82,9 @@ void ASCharacter::Tick(float DeltaTime)
 void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	//注意：视频P45 045 Add Movement Input中把Player Start删除，然后直接把SCharacter的蓝图资源拖入关卡；
+	// 这时必须设置SCharacter蓝图中的Auto Possess Player为Player 0；如果没设置，input不会操控角色，而是整个视口
 	
 	/**BindAxis
 	* BindAxis 第一个参数为 虚幻4->项目设置 ->输入->按键绑定的名称(Axis Mappins)  一定要一样 ！！！
@@ -86,5 +104,10 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAxis("Turn", this, &ASCharacter::AddControllerYawInput);
 	PlayerInputComponent->BindAxis("LookUp", this, &ASCharacter::AddControllerPitchInput);
 
+	PlayerInputComponent->BindAction("Crouch", IE_Pressed,  this, &ASCharacter::BeginCrouch);
+	PlayerInputComponent->BindAction("Crouch", IE_Released, this, &ASCharacter::EndCrouch);
+
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ASCharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ASCharacter::StopJumping);
 }
 
