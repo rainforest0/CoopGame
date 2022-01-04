@@ -5,6 +5,7 @@
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Math/UnrealMathUtility.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -21,6 +22,11 @@ ASCharacter::ASCharacter()
 
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
 	
+	DefaultFOV = CameraComp->FieldOfView;
+	bWantsToZoom = false;
+	
+	ZoomedFOV = 65.0f;
+	ZoomInterpSpeed = 20;
 }
 
 // Called when the game starts or when spawned
@@ -71,11 +77,25 @@ void  ASCharacter::EndCrouch()
 }
 
 
+void  ASCharacter::BeginZoom()
+{
+	bWantsToZoom = true;
+}
+
+void  ASCharacter::EndZoom()
+{
+	bWantsToZoom = false;
+}
+
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	float TargetFOV = bWantsToZoom ? ZoomedFOV : DefaultFOV;
+	float NewFOV = FMath::FInterpTo(CameraComp->FieldOfView, TargetFOV, DeltaTime, ZoomInterpSpeed);
+
+	CameraComp->SetFieldOfView(NewFOV);
 }
 
 // Called to bind functionality to input
@@ -109,6 +129,9 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ASCharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ASCharacter::StopJumping);
+
+	PlayerInputComponent->BindAction("Zoom", IE_Pressed, this, &ASCharacter::BeginZoom);
+	PlayerInputComponent->BindAction("Zoom", IE_Released, this, &ASCharacter::EndZoom);
 }
 
 FVector ASCharacter::GetPawnViewLocation() const
