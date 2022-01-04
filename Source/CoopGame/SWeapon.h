@@ -44,6 +44,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	FName TracerTargetName;
 
+	//error : Class 'UCameraShake' not found.
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<UMatineeCameraShake> FireCameraShake;
+
 public:	
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void Fire();
