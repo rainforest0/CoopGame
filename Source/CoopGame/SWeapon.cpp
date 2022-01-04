@@ -19,9 +19,6 @@ FAutoConsoleVariableRef CVARDebugWeaponDrawing(
 // Sets default values
 ASWeapon::ASWeapon()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
-
 	MeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshComp"));
 	RootComponent = MeshComp;
 
@@ -29,12 +26,6 @@ ASWeapon::ASWeapon()
 	TracerTargetName = "Target";
 }
 
-// Called when the game starts or when spawned
-void ASWeapon::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
 
 void ASWeapon::Fire()
 {
@@ -81,30 +72,29 @@ void ASWeapon::Fire()
 			DrawDebugLine(GetWorld(), EyeLocation, TraceEnd, FColor::White, false, 1.0f, 0, 1.0f);
 		}
 		
-		//射击时火焰效果
-		if (MuzzleEffect)
-		{
-			//Plays the specified effect attached to and following the specified component. The system will go away when the effect is complete. Does not replicate.
-			UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComp, MuzzleSocketName);
-		}
-
-		FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
-		if (TraceEffect)
-		{
-			UParticleSystemComponent* TraceComp = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TraceEffect, MuzzleLocation);
-			if (TraceComp)
-			{
-				TraceComp->SetVectorParameter(TracerTargetName, TracerEndPoint);
-			}
-		}
+		PlayFireEffects(TracerEndPoint);
 		
 	}
 }
 
-// Called every frame
-void ASWeapon::Tick(float DeltaTime)
+void ASWeapon::PlayFireEffects(FVector TracerEnd)
 {
-	Super::Tick(DeltaTime);
+	//射击时火焰效果
+	if (MuzzleEffect)
+	{
+		//Plays the specified effect attached to and following the specified component. The system will go away when the effect is complete. Does not replicate.
+		UGameplayStatics::SpawnEmitterAttached(MuzzleEffect, MeshComp, MuzzleSocketName);
+	}
 
+	FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
+	if (TraceEffect)
+	{
+		UParticleSystemComponent* TraceComp = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), TraceEffect, MuzzleLocation);
+		if (TraceComp)
+		{
+			TraceComp->SetVectorParameter(TracerTargetName, TracerEnd);
+		}
+	}
 }
+
 
