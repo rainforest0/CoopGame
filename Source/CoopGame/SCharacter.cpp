@@ -93,6 +93,14 @@ void ASCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	float TargetFOV = bWantsToZoom ? ZoomedFOV : DefaultFOV;
+
+	/*FMath::FInterpTo 根据时间、速度进行插值， 可以使得镜头平缓的拉近
+	Current：当前值
+	Target：期望的目标值
+	Delta Time：时间变化值。
+	Interp Speed：插值速度
+	返回值：从“当前值”过渡到“期望的目标值”的一个中间值
+	*/
 	float NewFOV = FMath::FInterpTo(CameraComp->FieldOfView, TargetFOV, DeltaTime, ZoomInterpSpeed);
 
 	CameraComp->SetFieldOfView(NewFOV);
@@ -134,6 +142,7 @@ void ASCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponen
 	PlayerInputComponent->BindAction("Zoom", IE_Released, this, &ASCharacter::EndZoom);
 }
 
+//重写GetActorEyesViewPoint方法，使得射线检测的起点为相机所在位置
 FVector ASCharacter::GetPawnViewLocation() const
 {
 	if (CameraComp)
