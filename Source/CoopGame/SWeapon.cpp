@@ -71,7 +71,7 @@ void ASWeapon::Fire()
 			
 			float ActualDamage = BaseDamage;
 
-			//命中SURFACE_FLESHVULNERABLE部位（目前设定为头部，在character->mesh->Physics中设置），实际伤害增加一定的倍数
+			//命中SURFACE_FLESHVULNERABLE部位（目前设定为头部，在character->mesh->Physics中设置物理材质），实际伤害增加一定的倍数
 			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 			if (SurfaceType == SURFACE_FLESHVULNERABLE)
 			{

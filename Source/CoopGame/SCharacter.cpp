@@ -7,6 +7,8 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "Math/UnrealMathUtility.h"
 #include "SWeapon.h"
+#include "Components/CapsuleComponent.h"
+#include "CoopGame.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -22,6 +24,8 @@ ASCharacter::ASCharacter()
 	CameraComp->SetupAttachment(SpringArmComp);
 
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
+
+	GetCapsuleComponent()->SetCollisionResponseToChannel(COLLISON_WEAPON, ECR_Ignore);
 	
 	DefaultFOV = CameraComp->FieldOfView;
 	bWantsToZoom = false;
