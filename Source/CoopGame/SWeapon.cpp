@@ -70,6 +70,8 @@ void ASWeapon::Fire()
 			AActor* HitActor = Hit.GetActor();
 			
 			float ActualDamage = BaseDamage;
+
+			//命中SURFACE_FLESHVULNERABLE部位（目前设定为头部，在character->mesh->Physics中设置），实际伤害增加一定的倍数
 			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 			if (SurfaceType == SURFACE_FLESHVULNERABLE)
 			{
@@ -114,6 +116,8 @@ void ASWeapon::Fire()
 
 void ASWeapon::StartFire()
 {
+	//避免“通过快速点击鼠标按键，实现轰炸式发射”，方法：增加对上一次开火的检查，反馈在以下FirstDelay参数上；
+	//    否则，如果连续开火比按自动开火更快的话，那谁还会慢慢地等待自动开火。
 	//第一次延迟=上次开火时间+射击时间间隔-当前游戏时间
 	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
 
