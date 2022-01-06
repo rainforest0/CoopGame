@@ -20,6 +20,8 @@ public:
 	ASWeapon();
 
 protected:
+	// Called when the game starts or when spawned
+	virtual void BeginPlay() override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USkeletalMeshComponent* MeshComp;
@@ -54,8 +56,22 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	float BaseDamage;
 
-public:	
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void Fire();
+
+	FTimerHandle TimerHandle_TimeBetweenShots;
+
+	float LastFireTime;
+
+	//RPM:武器每分钟发射子弹数量
+	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
+	float RatOfFire;
+
+	//衍生自RatOfFire
+	float TimeBetweenShots;
+public:	
+
+	void StartFire();
+
+	void StopFire();
 
 };

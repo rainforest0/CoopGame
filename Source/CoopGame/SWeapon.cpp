@@ -9,6 +9,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "CoopGame.h"
+#include "TimerManager.h"
 
 //控制台变量可以控制游戏开发版中各项Debug信息
 static int32 DebugWeaponDrawing = 0;
@@ -28,8 +29,17 @@ ASWeapon::ASWeapon()
 	TracerTargetName = "Target";
 
 	BaseDamage = 20.0f;
+
+	RatOfFire = 600;
 }
 
+// Called when the game starts or when spawned
+void ASWeapon::BeginPlay()
+{
+	Super::BeginPlay();
+
+	TimeBetweenShots =  60 / RatOfFire;
+}
 
 void ASWeapon::Fire()
 {
@@ -98,7 +108,21 @@ void ASWeapon::Fire()
 		
 		PlayFireEffects(TracerEndPoint);
 		
+		LastFireTime = GetWorld()->TimeSeconds;
 	}
+}
+
+void ASWeapon::StartFire()
+{
+	//第一次延迟=上次开火时间+射击时间间隔-当前游戏时间
+	float FirstDelay = FMath::Max(LastFireTime + TimeBetweenShots - GetWorld()->TimeSeconds, 0.0f);
+
+	GetWorldTimerManager().SetTimer(TimerHandle_TimeBetweenShots, this, &ASWeapon::Fire, TimeBetweenShots, true, FirstDelay);
+}
+
+void ASWeapon::StopFire()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandle_TimeBetweenShots);
 }
 
 void ASWeapon::PlayFireEffects(FVector TracerEnd)
