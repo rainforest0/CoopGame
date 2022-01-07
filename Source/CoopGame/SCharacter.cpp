@@ -127,7 +127,7 @@ void  ASCharacter::StopFire()
 
 void ASCharacter::OnHealthChanged(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
-	if (Health < 0 && !bDied)
+	if (Health <= 0 && !bDied)
 	{
 		bDied = true;
 
@@ -140,6 +140,13 @@ void ASCharacter::OnHealthChanged(USHealthComponent* OwningHealthComp, float Hea
 		  QueryAndPhysics（同时响应物理碰撞和踪迹碰撞）
 		*/
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		//等待销毁时从控制器移除角色控制
+		DetachFromControllerPendingDestroy();
+
+		//设置角色生命周期
+		//Set the lifespan of this actor. When it expires the object will be destroyed. 注意：If requested lifespan is 0, the timer is cleared and the actor will not be destroyed.
+		SetLifeSpan(10.0f);
 	}
 }
 
