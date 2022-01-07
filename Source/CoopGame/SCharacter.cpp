@@ -9,6 +9,7 @@
 #include "SWeapon.h"
 #include "Components/CapsuleComponent.h"
 #include "CoopGame.h"
+#include "Components/SHealthComponent.h"
 
 // Sets default values
 ASCharacter::ASCharacter()
@@ -22,6 +23,8 @@ ASCharacter::ASCharacter()
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("CameraComp"));
 	CameraComp->SetupAttachment(SpringArmComp);
+
+	HealthComp = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComp"));
 
 	GetMovementComponent()->GetNavAgentPropertiesRef().bCanCrouch = true;
 
@@ -51,6 +54,8 @@ void ASCharacter::BeginPlay()
 		CurrentWeapon->SetOwner(this);
 		CurrentWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, WeaponAttachSocketName);
 	}
+
+	HealthComp->OnHealthChanged.AddDynamic(this, &ASCharacter::OnHealthChanged);
 }
 
 void ASCharacter::MoveForward(float Value)
@@ -120,6 +125,23 @@ void  ASCharacter::StopFire()
 	}
 }
 
+void ASCharacter::OnHealthChanged(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
+{
+	if (Health < 0 && !bDied)
+	{
+		bDied = true;
+
+		//Stops movement immediately
+		GetMovementComponent()->StopMovementImmediately();
+
+		/*NoCollision（不接受碰撞）、
+		  QueryOnly（仅响应踪迹碰撞，无物理碰撞；只接受光线投射，扫描和重叠这类的碰撞；）、
+		  PhysicsOnly（仅响应物理碰撞，无踪迹碰撞；只接受刚体，约束这类碰撞；）、
+		  QueryAndPhysics（同时响应物理碰撞和踪迹碰撞）
+		*/
+		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
 
 // Called every frame
 void ASCharacter::Tick(float DeltaTime)
