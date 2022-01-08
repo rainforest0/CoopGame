@@ -76,7 +76,7 @@ protected:
 
 	bool  bWantsToZoom;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Player")
+	UPROPERTY(Replicated)
 	ASWeapon* CurrentWeapon;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Player")

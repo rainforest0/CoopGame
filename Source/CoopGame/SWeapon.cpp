@@ -31,6 +31,9 @@ ASWeapon::ASWeapon()
 	BaseDamage = 20.0f;
 
 	RatOfFire = 600;
+
+	//这意味着经系统内部处理，服务器生成武器的同时，也能让客户端上生成武器
+	SetReplicates(true);
 }
 
 // Called when the game starts or when spawned
