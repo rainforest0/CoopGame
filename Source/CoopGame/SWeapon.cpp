@@ -10,6 +10,7 @@
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "CoopGame.h"
 #include "TimerManager.h"
+#include "Net/UnrealNetwork.h"
 
 //控制台变量可以控制游戏开发版中各项Debug信息
 static int32 DebugWeaponDrawing = 0;
@@ -119,9 +120,20 @@ void ASWeapon::Fire()
 		}
 		
 		PlayFireEffects(TracerEndPoint);
+
+		if (HasAuthority())
+		{
+			HitScanTrace.TraceTo = TracerEndPoint;
+		}
 		
 		LastFireTime = GetWorld()->TimeSeconds;
 	}
+}
+
+void ASWeapon::OnRep_HitScanTrace()
+{
+	// Play cosmetic FX(播放外观效果)
+	PlayFireEffects(HitScanTrace.TraceTo);
 }
 
 void ASWeapon::ServerFire_Implementation()
@@ -180,4 +192,9 @@ void ASWeapon::PlayFireEffects(FVector TracerEnd)
 	}
 }
 
+void ASWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
+	DOREPLIFETIME_CONDITION(ASWeapon, HitScanTrace, COND_SkipOwner);
+}
