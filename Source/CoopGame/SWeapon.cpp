@@ -46,6 +46,13 @@ void ASWeapon::BeginPlay()
 
 void ASWeapon::Fire()
 {
+	//视频教程这里的条件是if (Role < ROLE_Authority)
+	//检查Role不为ROLE_Authority，也就是在客户端时才执行
+	if (!HasAuthority())
+	{
+		ServerFire();
+	}
+
 	AActor* MyOwner = GetOwner();
 	if (MyOwner)
 	{
@@ -115,6 +122,17 @@ void ASWeapon::Fire()
 		
 		LastFireTime = GetWorld()->TimeSeconds;
 	}
+}
+
+void ASWeapon::ServerFire_Implementation()
+{
+	Fire();
+}
+
+//返回false时，原生调用这一函数的客户端会从服务器断开连接
+bool ASWeapon::ServerFire_Validate()
+{
+	return true;
 }
 
 void ASWeapon::StartFire()
