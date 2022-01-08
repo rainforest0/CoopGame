@@ -18,11 +18,12 @@ struct FHitScanTrace
 
 public:
 
+	//TEnumAsByte:将枚举转换为Byte，以便复制
 	UPROPERTY()
-		TEnumAsByte<EPhysicalSurface> SurfaceType;
+	TEnumAsByte<EPhysicalSurface> SurfaceType;
 
 	UPROPERTY()
-		FVector_NetQuantize TraceTo;
+	FVector_NetQuantize TraceTo;
 };
 
 UCLASS()
@@ -42,6 +43,9 @@ protected:
 	USkeletalMeshComponent* MeshComp;
 
 	void PlayFireEffects(FVector TracerEnd);
+
+	//播放冲击效果
+	void PlayImpactEffects(EPhysicalSurface SurfaceType, FVector ImpactPoint);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon")
 	TSubclassOf<UDamageType> DamageType;

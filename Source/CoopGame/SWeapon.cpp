@@ -35,6 +35,12 @@ ASWeapon::ASWeapon()
 
 	//这意味着经系统内部处理，服务器生成武器的同时，也能让客户端上生成武器
 	SetReplicates(true);
+
+	/*Actor的同步频率NetUpdateFrequency：上次同步间隔小于该频率，在该帧不进行同步
+	* Actor的同步频率支持动态调整，但始终处于最大（NetUpdateFrequency）和最小（MinNetUpdateFrequency）同步频率之间；
+	*/
+	NetUpdateFrequency = 66.0f; //默认值：NetUpdateFrequency = 100.0f;
+	MinNetUpdateFrequency = 33.0f;//默认值：MinNetUpdateFrequency = 2.0f;
 }
 
 // Called when the game starts or when spawned
@@ -74,6 +80,13 @@ void ASWeapon::Fire()
 
 		FVector TracerEndPoint = TraceEnd;
 
+		EPhysicalSurface SurfaceType = SurfaceType_Default;
+
+		/*ue4射线查询主要使用LineTraceSingleByChannel和LineTraceSingleByObjectType函数进行;
+		LineTraceSingleByChannel是通过Channel进行查询;
+		LineTraceSingleByObjectType通过ObjectType进行查询;
+		要理解这两个函数的区别，首先必须理解Channel和ObjectType的区别: 此处的Channel指的是ECollisionChannel（可参考源码），而ObjectType指的是碰撞中的Object Type设置
+		*/
 		FHitResult Hit;
 		if (GetWorld()->LineTraceSingleByChannel(Hit, EyeLocation, TraceEnd, COLLISON_WEAPON, QueryParams))
 		{
@@ -83,7 +96,7 @@ void ASWeapon::Fire()
 			float ActualDamage = BaseDamage;
 
 			//命中SURFACE_FLESHVULNERABLE部位（目前设定为头部，在character->mesh->Physics中设置物理材质），实际伤害增加一定的倍数
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
+			SurfaceType = UPhysicalMaterial::DetermineSurfaceType(Hit.PhysMaterial.Get());
 			if (SurfaceType == SURFACE_FLESHVULNERABLE)
 			{
 				ActualDamage *= 4;
@@ -91,24 +104,7 @@ void ASWeapon::Fire()
 
 			UGameplayStatics::ApplyPointDamage(HitActor, 20.0f, ShotDirection, Hit, MyOwner->GetInstigatorController(), this, DamageType);
 
-			UParticleSystem* SelectedEffect = nullptr;
-
-			switch (SurfaceType)
-			{
-			case SURFACE_FLESHDEFAULT:
-			case SURFACE_FLESHVULNERABLE:
-				SelectedEffect = FleshImpactEffect;
-				break;
-			default:
-				SelectedEffect = DefaultImpactEffect;
-			}
-
-			//击中时效果
-			if (SelectedEffect)
-			{
-				//Plays the specified effect at the given location and rotation, fire and forget. The system will go away when the effect is complete. Does not replicate
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, Hit.ImpactPoint, Hit.ImpactNormal.Rotation());
-			}
+			PlayImpactEffects(SurfaceType, Hit.ImpactPoint);
 			
 			TracerEndPoint = Hit.ImpactPoint;
 		}
@@ -124,6 +120,7 @@ void ASWeapon::Fire()
 		if (HasAuthority())
 		{
 			HitScanTrace.TraceTo = TracerEndPoint;
+			HitScanTrace.SurfaceType = SurfaceType;
 		}
 		
 		LastFireTime = GetWorld()->TimeSeconds;
@@ -134,6 +131,8 @@ void ASWeapon::OnRep_HitScanTrace()
 {
 	// Play cosmetic FX(播放外观效果)
 	PlayFireEffects(HitScanTrace.TraceTo);
+
+	PlayImpactEffects(HitScanTrace.SurfaceType, HitScanTrace.TraceTo);
 }
 
 void ASWeapon::ServerFire_Implementation()
@@ -189,6 +188,38 @@ void ASWeapon::PlayFireEffects(FVector TracerEnd)
 		{
 			PC->ClientPlayCameraShake(FireCameraShake);
 		}
+	}
+}
+
+void ASWeapon::PlayImpactEffects(EPhysicalSurface SurfaceType, FVector ImpactPoint)
+{
+	UParticleSystem* SelectedEffect = nullptr;
+
+	switch (SurfaceType)
+	{
+	case SURFACE_FLESHDEFAULT:
+	case SURFACE_FLESHVULNERABLE:
+		SelectedEffect = FleshImpactEffect;
+		break;
+	default:
+		SelectedEffect = DefaultImpactEffect;
+	}
+
+	//击中时效果
+	if (SelectedEffect)
+	{
+		//MuzzleSocketName：枪口套接字的名字；GetSocketLocation获取是枪口位置
+		FVector MuzzleLocation = MeshComp->GetSocketLocation(MuzzleSocketName);
+		FVector ShotDirection = ImpactPoint - MuzzleLocation;
+		ShotDirection.Normalize();
+
+		/*(1)FVector::Rotation(): Returns FRotator from the Vector's direction
+		Return the FRotator orientation corresponding to the direction in which the vector points. Sets Yaw and Pitch to the proper numbers, 
+		       and sets Roll to zero because the roll can't be determined from a vector.
+        (2)SpawnEmitterAtLocation():
+		   Plays the specified effect at the given location and rotation, fire and forget. The system will go away when the effect is complete. Does not replicate
+		*/
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), SelectedEffect, ImpactPoint, ShotDirection.Rotation());
 	}
 }
 
