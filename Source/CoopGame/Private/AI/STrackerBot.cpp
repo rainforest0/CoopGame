@@ -9,6 +9,8 @@
 #include "GameFramework/Character.h"
 #include "DrawDebugHelpers.h"
 #include "Components/SHealthComponent.h"
+#include "Components/SphereComponent.h"
+#include "../SCharacter.h"
 
 // Sets default values
 ASTrackerBot::ASTrackerBot()
@@ -24,12 +26,22 @@ ASTrackerBot::ASTrackerBot()
 	HealthComp = CreateDefaultSubobject<USHealthComponent>(TEXT("HealthComp"));
 	HealthComp->OnHealthChanged.AddDynamic(this, &ASTrackerBot::HandleTakeDamage);
 
+	SphereComp = CreateDefaultSubobject<USphereComponent>(TEXT("SphereComp"));
+	SphereComp->SetSphereRadius(200);
+	SphereComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	SphereComp->SetCollisionResponseToAllChannels(ECR_Ignore);
+	SphereComp->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
+	SphereComp->SetupAttachment(RootComponent);
+
 	bUseVelocityChange = false;
 	MovementForce = 1000;
 	RequireDistanceToTarget = 100;
 
 	ExplosionDamage = 60;
 	ExplosionRadius = 350;
+
+	SelfDamageInterval = 0.25f;
+	bStartedSelfDestruction = false;
 }
 
 // Called when the game starts or when spawned
@@ -105,6 +117,12 @@ void ASTrackerBot::HandleTakeDamage(USHealthComponent* OwningHealthComp, float H
 	UE_LOG(LogTemp, Log, TEXT("Health %s of %s"), *FString::SanitizeFloat(Health), *GetName());
 }
 
+
+void ASTrackerBot::DamageSelf()
+{
+	UGameplayStatics::ApplyDamage(this, 20, GetInstigatorController(), this, nullptr);
+}
+
 FVector ASTrackerBot::GetNextPathPoint()
 {
 	//尝试获取玩家位置
@@ -160,3 +178,20 @@ void ASTrackerBot::Tick(float DeltaTime)
 }
 
 
+void ASTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorBeginOverlap(OtherActor);
+
+	if (!bExploded && !bStartedSelfDestruction)
+	{
+		ASCharacter* PlayerPawn = Cast<ASCharacter>(OtherActor);
+		if (PlayerPawn)
+		{
+			//靠近玩家后，便会触发DamageSelf，当Health降为0时就会爆炸
+			// Start self destruction sequence
+			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
+
+			bStartedSelfDestruction = true;
+		}
+	}
+}
