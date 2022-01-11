@@ -33,6 +33,9 @@ ASWeapon::ASWeapon()
 
 	RatOfFire = 600;
 
+	/*Actor复制  ：C++: AActor::SetReplicates(true)；            Blueprint:属性面板中设置Replicates；
+	Component复制：C++: AActorComponent::SetIsReplicated(true)； Blueprint:调用SetIsReplicated节点；
+	*/
 	//这意味着经系统内部处理，服务器生成武器的同时，也能让客户端上生成武器
 	SetReplicates(true);
 

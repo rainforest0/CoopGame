@@ -9,6 +9,14 @@ USHealthComponent::USHealthComponent()
 {
 	DefaultHealth = 100;
 
+	/*
+    Components(组件)
+    多数componet是不复制的, 因为多数逻辑是在actor中完成的, 只需要同步compoent相关的调用即可, 除非component本身需要直接进行属性和事件的复制.
+    组件复制分两种:
+        静态组件(actor创建时创建的)会在spawn actor时自动创建；
+        动态组件(服务器运行时创建的)会像actor复制一样创建和删除；
+    AActorComponent::SetIsReplicated(true)
+    */
 	SetIsReplicated(true);
 }
 
@@ -20,7 +28,7 @@ void USHealthComponent::BeginPlay()
 
 	Health = DefaultHealth;
      
-	//仅当是在服务器时，讲生命和伤害事件绑定
+	//仅当是在服务器时，将生命和伤害事件绑定
 	if (GetOwnerRole() == ROLE_Authority)
 	{
 		AActor* MyOwner = GetOwner();

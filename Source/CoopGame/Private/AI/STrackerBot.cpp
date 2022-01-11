@@ -50,7 +50,10 @@ void ASTrackerBot::BeginPlay()
 {
 	Super::BeginPlay();
 
-	NextPathPoint = GetNextPathPoint();
+	if (HasAuthority())
+	{
+		NextPathPoint = GetNextPathPoint();
+	}
 }
 
 void ASTrackerBot::SelfDestruct()
@@ -64,6 +67,8 @@ void ASTrackerBot::SelfDestruct()
 
 	UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEffect, GetActorLocation());
 
+	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
+
 	/*UE4 SetVisibility()和SetHiddenInGame()的比较
      区别与联系：SetVility()实现的更加广泛一些，而SetHiddenInGame()则是只在SceneComponent中有实现，意味着SetHiddenInGame()只能隐藏SceneComponent。
 	             SetVisibility()可以隐藏包括SceneComponent在内的很多东西(如UI组件)。一般来说能在场景中显示(看的见的)物体，都有SceneComponent,两种方法都可以达到目的，
@@ -76,23 +81,25 @@ void ASTrackerBot::SelfDestruct()
 
 	MeshComp->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-	TArray<AActor*> IgnoredActors;
-	IgnoredActors.Add(this);
+	if (HasAuthority())
+	{
+		TArray<AActor*> IgnoredActors;
+		IgnoredActors.Add(this);
 
-	/*（1）ApplyRadialDamage函数用来处理球形范围伤害，此函数大概是选取球形范围内可被伤害的物体，进行伤害处理;
-	* 另外，此函数还处理了遮挡伤害的问题，比如，伤害范围内包含一根柱子，假设人正好在柱子后，如果想让柱子后的人不承受伤害该怎么处理呢，有个参数为ECollisionChannel DamagePreventionChannel，
-	        此参数一看名字就知道是用来处理此种情况的；函数内部会从爆炸点到被伤害物体的Component做射线检测，检测函数为LineTraceSingleByChannel；
-			假设DamagePreventionChannel设置为ECC_Visibility，那范围内的所有Component中ECC_Visibility Channel设置为block的，都会阻挡伤害，此参数设置不当，可能会出现范围内有些物体不被伤害的问题；
-     （2）INSTIGATOR：GetInstigatorController()
-          Instigator是导致伤害的发起者，它通常是PlayerController或者AIController。比如，在火灾的情况下，就可能是player 或者 Ai点燃的火。
-	*/
-	UGameplayStatics::ApplyRadialDamage(this, ExplosionDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoredActors, this, GetInstigatorController(), true);
+		/*（1）ApplyRadialDamage函数用来处理球形范围伤害，此函数大概是选取球形范围内可被伤害的物体，进行伤害处理;
+		* 另外，此函数还处理了遮挡伤害的问题，比如，伤害范围内包含一根柱子，假设人正好在柱子后，如果想让柱子后的人不承受伤害该怎么处理呢，有个参数为ECollisionChannel DamagePreventionChannel，
+				此参数一看名字就知道是用来处理此种情况的；函数内部会从爆炸点到被伤害物体的Component做射线检测，检测函数为LineTraceSingleByChannel；
+				假设DamagePreventionChannel设置为ECC_Visibility，那范围内的所有Component中ECC_Visibility Channel设置为block的，都会阻挡伤害，此参数设置不当，可能会出现范围内有些物体不被伤害的问题；
+		 （2）INSTIGATOR：GetInstigatorController()
+			  Instigator是导致伤害的发起者，它通常是PlayerController或者AIController。比如，在火灾的情况下，就可能是player 或者 Ai点燃的火。
+		*/
+		UGameplayStatics::ApplyRadialDamage(this, ExplosionDamage, GetActorLocation(), ExplosionRadius, nullptr, IgnoredActors, this, GetInstigatorController(), true);
 
-	DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadius, 12, FColor::Red, false, 2.0f, 0, 1.0f);
+		DrawDebugSphere(GetWorld(), GetActorLocation(), ExplosionRadius, 12, FColor::Red, false, 2.0f, 0, 1.0f);
 
-	UGameplayStatics::PlaySoundAtLocation(this, ExplodeSound, GetActorLocation());
+		SetLifeSpan(2.0f);
+	}
 
-	Destroy();
 }
 
 void ASTrackerBot::HandleTakeDamage(USHealthComponent* OwningHealthComp, float Health, float HealthDelta, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
@@ -149,35 +156,39 @@ void ASTrackerBot::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	float DistanceToTarget =(GetActorLocation() - NextPathPoint).Size();
-	if (DistanceToTarget < RequireDistanceToTarget)
+	if (HasAuthority() && !bExploded)
 	{
-		NextPathPoint = GetNextPathPoint();
+		float DistanceToTarget = (GetActorLocation() - NextPathPoint).Size();
+		if (DistanceToTarget < RequireDistanceToTarget)
+		{
+			NextPathPoint = GetNextPathPoint();
 
-		DrawDebugString(GetWorld(), GetActorLocation(), "Target Reached!");
+			DrawDebugString(GetWorld(), GetActorLocation(), "Target Reached!");
+		}
+		else
+		{
+			FVector ForceDirection = NextPathPoint - GetActorLocation();
+			ForceDirection.Normalize();
+
+			ForceDirection *= MovementForce;
+
+			/*给对象力和力矩
+			  力：改变物体运动状态（AddForce）
+			 力矩：力对物体作用时所产生的转动效应（AddTorqueInRadians，AddTorque函数已被废弃）
+
+			AddForce(FVctor Force,FName BoneName,bool bAccolChange) ：给物体（打开物理模拟）施加力的作用，参数为矢量FVector，
+					  Force为其添加的力(力：给对象施加一个力时，对象会被施加的力推动;只要让想受到力影响的对象调用AddForce函数，就能对其施加一个力，可以看到第一个参数是一个向量，就是力的方向)，
+					  BoneName是指当前里所作用的骨骼，默认为NAME_None,
+					  bAccolChange是指当前力是否直接作用为加速度（跳过与质量进行运算的环节）,默认为false.
+			*/
+			MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
+
+			DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Yellow, false, 0.0f, 0, 1.0f);
+		}
+
+		DrawDebugSphere(GetWorld(), NextPathPoint, 20, 12, FColor::Yellow, false, 0.0f, 1.0f);
 	}
-	else
-	{
-		FVector ForceDirection = NextPathPoint - GetActorLocation();
-		ForceDirection.Normalize();
-
-		ForceDirection *= MovementForce;
-
-		/*给对象力和力矩
-          力：改变物体运动状态（AddForce）
-         力矩：力对物体作用时所产生的转动效应（AddTorqueInRadians，AddTorque函数已被废弃）
-
-		AddForce(FVctor Force,FName BoneName,bool bAccolChange) ：给物体（打开物理模拟）施加力的作用，参数为矢量FVector，
-		          Force为其添加的力(力：给对象施加一个力时，对象会被施加的力推动;只要让想受到力影响的对象调用AddForce函数，就能对其施加一个力，可以看到第一个参数是一个向量，就是力的方向)，
-		          BoneName是指当前里所作用的骨骼，默认为NAME_None, 
-				  bAccolChange是指当前力是否直接作用为加速度（跳过与质量进行运算的环节）,默认为false.
-		*/
-		MeshComp->AddForce(ForceDirection, NAME_None, bUseVelocityChange);
-
-		DrawDebugDirectionalArrow(GetWorld(), GetActorLocation(), GetActorLocation() + ForceDirection, 32, FColor::Yellow, false, 0.0f, 0, 1.0f);
-	}
-
-	DrawDebugSphere(GetWorld(), NextPathPoint, 20, 12, FColor::Yellow, false, 0.0f, 1.0f);
+	
 }
 
 
@@ -190,9 +201,13 @@ void ASTrackerBot::NotifyActorBeginOverlap(AActor* OtherActor)
 		ASCharacter* PlayerPawn = Cast<ASCharacter>(OtherActor);
 		if (PlayerPawn)
 		{
-			//靠近玩家后，便会触发DamageSelf，当Health降为0时就会爆炸
-			// Start self destruction sequence
-			GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
+			if (HasAuthority())
+			{
+				//靠近玩家后，便会触发DamageSelf，当Health降为0时就会爆炸
+			    // Start self destruction sequence
+				GetWorldTimerManager().SetTimer(TimerHandle_SelfDamage, this, &ASTrackerBot::DamageSelf, SelfDamageInterval, true, 0.0f);
+			}
+			
 
 			bStartedSelfDestruction = true;
 
