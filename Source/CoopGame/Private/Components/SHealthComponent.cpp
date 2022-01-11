@@ -39,6 +39,15 @@ void USHealthComponent::BeginPlay()
 	}
 }
 
+//复制时，会保留上一个值
+void USHealthComponent::OnRep_Health(float OldHealth)
+{
+	float Damage = Health - OldHealth;
+
+	//让客户端也触发生命值的变化
+	OnHealthChanged.Broadcast(this, Health, Damage, nullptr, nullptr, nullptr);
+}
+
 void USHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const class UDamageType* DamageType, class AController* InstigatedBy, AActor* DamageCauser)
 {
 	if (Damage < 0)
