@@ -50,6 +50,8 @@ void ASTrackerBot::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//在默认情况下，客户端上没有加载导航网格体；它只在服务上才有，因为通常机器人的控制只受服务器控制，而客户端无需进行寻路计算；
+	//”项目设置“中其实有一个这样的选项，这里暂时不用。
 	if (HasAuthority())
 	{
 		NextPathPoint = GetNextPathPoint();
