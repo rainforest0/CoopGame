@@ -27,6 +27,8 @@ void ASpowerupActor::OnTickPowerup()
 
 	OnPowerupTicked();
 
+	UE_LOG(LogTemp, Log, TEXT("OnTickPowerup %d"), TicksProcessed);
+
 	if (TicksProcessed >= TotalNumberOfTicks)
 	{
 		OnExpired();

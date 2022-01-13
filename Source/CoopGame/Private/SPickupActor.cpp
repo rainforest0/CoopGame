@@ -36,6 +36,8 @@ void ASPickupActor::Respawn()
 		return;
 	}
 
+	UE_LOG(LogTemp, Log, TEXT("PowerUpClass %s Respawn"), *GetName());
+
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
