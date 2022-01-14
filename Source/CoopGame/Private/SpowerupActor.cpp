@@ -50,9 +50,9 @@ void  ASpowerupActor::OnRep_PowerupActive()
 }
 
 //void ASPickupActor::NotifyActorBeginOverlap(AActor* OtherActor)函数中已经保证ActivatePowerup()只会在服务器调用
-void ASpowerupActor::ActivatePowerup()
+void ASpowerupActor::ActivatePowerup(AActor* ActiveFor)
 {
-	OnActivated();
+	OnActivated(ActiveFor);
 
 	bIsPowerupActive = true;
 
