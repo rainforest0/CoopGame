@@ -2,6 +2,7 @@
 
 
 #include "SpowerupActor.h"
+#include "Net/UnrealNetwork.h"
 
 // Sets default values
 ASpowerupActor::ASpowerupActor()
@@ -35,17 +36,28 @@ void ASpowerupActor::OnTickPowerup()
 
 		bIsPowerupActive = false;
 
+		//服务器需要主动调用，客户端走的是复制
+		OnPowerupStateChanged(bIsPowerupActive);
+
 		// Delete timer
 		GetWorldTimerManager().ClearTimer(TimerHandle_PowerupTick);
 	}
 }
 
+void  ASpowerupActor::OnRep_PowerupActive()
+{
+	OnPowerupStateChanged(bIsPowerupActive);
+}
 
+//void ASPickupActor::NotifyActorBeginOverlap(AActor* OtherActor)函数中已经保证ActivatePowerup()只会在服务器调用
 void ASpowerupActor::ActivatePowerup()
 {
 	OnActivated();
 
 	bIsPowerupActive = true;
+
+	//服务器需要主动调用，客户端走的是复制
+	OnPowerupStateChanged(bIsPowerupActive);
 
 	if (PowerupInterval > 0.0f)
 	{
@@ -56,4 +68,11 @@ void ASpowerupActor::ActivatePowerup()
 		OnTickPowerup();
 	}
 	
+}
+
+void ASpowerupActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(ASpowerupActor, bIsPowerupActive);
 }

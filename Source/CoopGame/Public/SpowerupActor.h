@@ -31,10 +31,18 @@ protected:
 	// Total number of ticks applied
 	int32 TicksProcessed;
 
-	bool bIsPowerupActive;
 
 	UFUNCTION()
 	void OnTickPowerup();
+
+	UPROPERTY(ReplicatedUsing = OnRep_PowerupActive)
+	bool bIsPowerupActive;
+
+	UFUNCTION()
+	void OnRep_PowerupActive();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "Powerups")
+	void OnPowerupStateChanged(bool bNewIsActive);
 
 public:	
 	void ActivatePowerup();

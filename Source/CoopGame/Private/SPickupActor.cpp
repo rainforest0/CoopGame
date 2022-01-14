@@ -18,6 +18,8 @@ ASPickupActor::ASPickupActor()
 	DecalComp->DecalSize = FVector(64, 75, 75);
 	DecalComp->SetupAttachment(RootComponent);
 
+	SetReplicates(true);
+
 }
 
 // Called when the game starts or when spawned
@@ -25,7 +27,10 @@ void ASPickupActor::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	Respawn();
+	if (HasAuthority())
+	{
+		Respawn();
+	}
 }
 
 void ASPickupActor::Respawn()
@@ -48,7 +53,7 @@ void ASPickupActor::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
 
-	if (PowerupInstance)
+	if (HasAuthority() && PowerupInstance)
 	{
 		PowerupInstance->ActivatePowerup();
 		PowerupInstance = nullptr;
