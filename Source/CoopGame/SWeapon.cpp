@@ -189,7 +189,8 @@ void ASWeapon::PlayFireEffects(FVector TracerEnd)
 		APlayerController* PC = Cast<APlayerController>(MyOwn->GetController());
 		if (PC)
 		{
-			PC->ClientPlayCameraShake(FireCameraShake);
+			// warning C4996 : 'APlayerController::ClientPlayCameraShake' : Please use ClientStartCameraShake Please update your code to the new API before upgrading to the next release, otherwise your project will no longer compile.
+			PC->ClientStartCameraShake(FireCameraShake);
 		}
 	}
 }
