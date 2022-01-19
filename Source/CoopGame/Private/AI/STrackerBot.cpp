@@ -143,7 +143,7 @@ FVector ASTrackerBot::GetNextPathPoint()
 	UNavigationPath* NavPath = UNavigationSystemV1::FindPathToActorSynchronously(this, GetActorLocation(), PlayerPawn);
 
 	//数组中的第一个路径点是球体的当前所在位置，所以要知道下一个位置是数组的第二个元素
-	if (NavPath->PathPoints.Num() > 1)
+	if (NavPath && NavPath->PathPoints.Num() > 1)
 	{
 		//返回路径中的下一个点
 		return NavPath->PathPoints[1];
