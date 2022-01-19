@@ -6,6 +6,7 @@
 #include "SGameState.h"
 #include "TimerManager.h"
 
+
 ASGameMode::ASGameMode()
 {
 	PrimaryActorTick.bCanEverTick = true;
