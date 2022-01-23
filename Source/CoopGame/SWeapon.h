@@ -70,7 +70,7 @@ protected:
 
 	//error : Class 'UCameraShake' not found.
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
-	TSubclassOf<UMatineeCameraShake> FireCameraShake;
+	TSubclassOf<UCameraShakeBase> FireCameraShake;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Weapon")
 	float BaseDamage;
